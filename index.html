@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Jornada da Infecção - Jogo Educativo de Odontologia</title>
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" );
+        
+        :root {
+            --primary-grad-start: #6a82fb;
+            --primary-grad-end: #fc5c7d;
+            --success-grad-start: #27ae60;
+            --success-grad-end: #2ecc71;
+            --danger-grad-start: #e74c3c;
+            --danger-grad-end: #c0392b;
+            --text-dark: #2c3e50;
+            --text-light: #fff;
+            --bg-color: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Roboto", sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            padding: 30px;
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #3498db, #e74c3c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #scenario-text, #feedback-message {
+            font-size: 1.2em;
+            line-height: 1.8;
+            min-height: 120px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: left;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+            color: var(--text-dark);
+            transition: opacity 0.5s ease-in-out;
+        }
+        #scenario-text {
+             margin: 20px 0;
+             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+             border-left: 5px solid #3498db;
+        }
+
+        #visual-representation {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            margin: 30px 0;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 3px solid var(--text-light);
+        }
+
+        .patient-image, .tooth-image, .mouth-background { position: absolute; transition: all 1s ease-in-out; }
+        .patient-image { top: 10px; left: 10px; width: 80px; height: 80px; z-index: 5; }
+        .tooth-image { width: 200px; height: 200px; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3)); z-index: 2; }
+        .mouth-background { width: 100%; height: 100%; background-size: contain; background-repeat: no-repeat; background-position: center; opacity: 0.3; z-index: 1; }
+
+        .infection-particles { position: absolute; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+        .particle { position: absolute; width: 30px; height: 30px; border-radius: 50%; animation: float 3s infinite ease-in-out; background-size: cover; background-position: center; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); opacity: 0.7; } 50% { transform: translateY(-20px); opacity: 1; } }
+
+        .infection-progress { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 80%; height: 20px; background: rgba(255,255,255,0.3); border-radius: 10px; overflow: hidden; z-index: 4; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #27ae60, #f39c12, #e74c3c); width: 0%; transition: width 1.5s ease-in-out; border-radius: 10px; }
+
+        #visual-status { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 25px; font-weight: bold; color: var(--text-dark); box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 5; }
+
+        #choices { margin: 30px 0; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+        #choices button, #mode-selection button {
+            background: linear-gradient(135deg, var(--primary-grad-start) 0%, var(--primary-grad-end) 100%);
+            color: var(--text-light); padding: 15px 25px; border: 2px solid rgba(255,255,255,0.5); border-radius: 30px; cursor: pointer;
+            font-size: 1.1em; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
+        }
+        #choices button:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        #choices button:disabled { cursor: not-allowed; opacity: 0.7; }
+
+        .correct-choice { background: linear-gradient(135deg, var(--success-grad-start) 0%, var(--success-grad-end) 100%) !important; }
+        .wrong-choice { background: linear-gradient(135deg, var(--danger-grad-start) 0%, var(--danger-grad-end) 100%) !important; animation: shake 0.5s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        #feedback-message { margin: 20px 0; min-height: 60px; }
+        .success-feedback { background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); color: #155724; border-left: 5px solid #28a745; }
+        .danger-feedback { background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24; border-left: 5px solid #dc3545; }
+
+        #restart-button { display: none; margin-top: 20px; }
+        .treatment-effect { position: absolute; width: 100px; height: 100px; background: radial-gradient(circle, rgba(39,174,96,0.8) 0%, transparent 70%); border-radius: 50%; animation: treatment-pulse 1s ease-out; pointer-events: none; z-index: 6; }
+        @keyframes treatment-pulse { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+
+        .score-container { position: absolute; top: 20px; right: 20px; background: var(--text-dark); color: var(--text-light); padding: 10px 15px; border-radius: 10px; font-weight: bold; font-size: 1.1em; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.2); text-align: right; }
+        #high-score-display { font-size: 0.8em; opacity: 0.8; }
+
+        #timer-display { position: absolute; top: 20px; left: 20px; background: #ffc107; color: var(--text-dark); padding: 10px 15px; border-radius: 10px; font-weight: bold; font-size: 1.1em; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+        #start-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; }
+        #game-screen { display: none; }
+
+        .tooth-color-healthy { filter: brightness(1); }
+        .tooth-color-yellow1 { filter: brightness(0.9); }
+        .tooth-color-yellow2 { filter: brightness(0.8); }
+        .tooth-color-orange { filter: brightness(0.7); }
+        .tooth-color-dark { filter: brightness(0.5); }
+
+        @media (max-width: 768px) {
+            .game-container { padding: 20px; margin: 10px; }
+            h1 { font-size: 2em; }
+            #visual-representation { height: 250px; }
+            .tooth-image { width: 150px; height: 150px; }
+            #choices { flex-direction: column; align-items: center; }
+            #choices button { width: 100%; max-width: 300px; }
+            .score-container { font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Tela Inicial -->
+        <div id="start-screen">
+            <h1>🦷 A Jornada da Infecção 🦠</h1>
+            <p style="margin: 20px 0; font-size: 1.2em;">Escolha o modo de jogo:</p>
+            <div id="mode-selection" style="display: flex; gap: 15px; margin-top: 20px;">
+                <button onclick="startGame(\'normal\')">🎓 Modo Normal</button>
+                <button onclick="startGame(\'challenge\')">🏆 Modo Desafio</button>
+            </div>
+            <div class="score-container" style="position: static; margin-top: 30px; background: #34495e;">
+                Recorde: <span id="high-score-start">0</span>
+            </div>
+            <div style="margin-top: 20px; font-size: 0.9em; color: #555;">
+                Jogo criado por Igor Santiago
+            </div>
+        </div>
+
+        <!-- Tela do Jogo -->
+        <div id="game-screen">
+            <div id="timer-display">Tempo: <span>15</span>s</div>
+            <div class="score-container">
+                Pontos: <span id="score">0</span>  
+                <span id="high-score-display">Recorde: <span id="high-score-game">0</span></span>
+            </div>
+            <p id="scenario-text"></p>
+            <div id="visual-representation">
+                <img id="tooth-image" class="tooth-image" src="https://i.imgur.com/Q2Q2Q2Q.png" alt="Dente">
+                <div class="infection-particles" id="particles"></div>
+                <div id="visual-status"></div>
+                <div class="infection-progress"><div class="progress-bar" id="progress-bar"></div></div>
+            </div>
+            <div id="choices"></div>
+            <div id="feedback-message"></div>
+            <button id="restart-button" onclick="restartGame()">🔄 Voltar ao Início</button>
+        </div>
+
+        <!-- Tela de Fim de Jogo -->
+        <div id="end-screen" style="display: none;">
+            <h1>🎉 Parabéns!</h1>
+            <p style="font-size: 1.2em; margin-bottom: 20px;">Você completou todos os casos!</p>
+            <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 30px;">
+                <div style="background: #e0f7fa; padding: 15px 25px; border-radius: 10px; font-weight: bold;">
+                    Pontuação Final: <span id="final-score">0</span>
+                </div>
+                <div style="background: #fff3e0; padding: 15px 25px; border-radius: 10px; font-weight: bold;">
+                    Melhor Pontuação: <span id="final-high-score">0</span>
+                </div>
+            </div>
+            <button onclick="restartGame()" style="background: linear-gradient(135deg, #3498db, #2ecc71); color: white; padding: 15px 30px; border-radius: 30px; font-size: 1.1em; cursor: pointer; border: none;">🔄 Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        // Elementos da UI
+        const ui = {
+            startScreen: document.getElementById("start-screen"),
+            gameScreen: document.getElementById("game-screen"),
+            endScreen: document.getElementById("end-screen"),
+            scenarioText: document.getElementById("scenario-text"),
+            toothImage: document.getElementById("tooth-image"),
+            visualStatus: document.getElementById("visual-status"),
+            progressBar: document.getElementById("progress-bar"),
+            particlesContainer: document.getElementById("particles"),
+            choicesDiv: document.getElementById("choices"),
+            feedbackMessage: document.getElementById("feedback-message"),
+            restartButton: document.getElementById("restart-button"),
+            scoreDisplay: document.getElementById("score"),
+            highScoreDisplays: {
+                start: document.getElementById("high-score-start"),
+                game: document.getElementById("high-score-game"),
+                final: document.getElementById("final-high-score")
+            },
+            finalScoreDisplay: document.getElementById("final-score"),
+            timer: {
+                container: document.getElementById("timer-display"),
+                span: document.querySelector("#timer-display span")
+            }
+        };
+
+        // Estado do Jogo
+        let state = {
+            currentStage: 0,
+            currentScore: 0,
+            highScore: 0,
+            gameMode: "normal", // "normal" ou "challenge"
+            timerId: null,
+            timeLeft: 15,
+            toothHealth: 100 // 100 = saudável, 0 = muito danificado
+        };
+
+        // Dados do jogo
+        const gameData = [
+            {
+                text: "Paciente com dor aguda no dente 36. Exame revela cárie profunda atingindo a polpa. A infecção está começando.",
+                visual: "Pulpite Irreversível",
+                progress: 20,
+                particles: 5,
+                toothDamage: 0, // Dano inicial
+                choices: [
+                    { text: "🔧 Realizar tratamento endodôntico", correct: true, score: 100, feedback: "✅ Excelente! O tratamento endodôntico precoce removeu a fonte da infecção, preservando o dente." },
+                    { text: "💊 Prescrever apenas analgésicos", correct: false, score: -50, feedback: "❌ Incorreto. Analgésicos mascaram a dor, mas a infecção progride." }
+                ]
+            },
+            {
+                text: "A infecção progrediu, causando uma lesão periapical visível em radiografia. O paciente relata dor à percussão.",
+                visual: "Lesão Periapical",
+                progress: 45,
+                particles: 8,
+                toothDamage: 1, // Dano leve
+                choices: [
+                    { text: "🔧 Realizar tratamento endodôntico urgente", correct: true, score: 150, feedback: "✅ Ótima decisão! O tratamento eliminou a fonte de infecção, permitindo a cicatrização óssea." },
+                    { text: "🦷 Extrair o dente", correct: false, score: -100, feedback: "❌ Radical demais. O dente ainda tem grandes chances de ser salvo com o tratamento de canal." }
+                ]
+            },
+            {
+                text: "A infecção criou uma lesão endo-periodontal, com bolsa periodontal profunda e mobilidade dentária.",
+                visual: "Lesão Endo-Periodontal",
+                progress: 70,
+                particles: 12,
+                toothDamage: 2, // Dano moderado
+                choices: [
+                    { text: "🔧🦷 Tratamento endodôntico + periodontal", correct: true, score: 200, feedback: "✅ Perfeito! A abordagem combinada é essencial para salvar o dente neste estágio." },
+                    { text: "🔧 Apenas tratamento endodôntico", correct: false, score: -150, feedback: "❌ Incompleto. A infecção periodontal persistiria, levando à perda do dente." }
+                ]
+            },
+            {
+                text: "Durante o preparo do canal, você sente uma perda de resistência. Uma radiografia confirma uma perfuração na raiz.",
+                visual: "Perfuração Radicular",
+                progress: 85,
+                particles: 14,
+                toothDamage: 3, // Dano alto
+                choices: [
+                    { text: "🩹 Selar a perfuração com MTA e continuar", correct: true, score: 180, feedback: "✅ Rápido e preciso! Selar a perfuração imediatamente com um material biocompatível como o MTA dá a melhor chance de sucesso." },
+                    { text: "🤷‍♂️ Ignorar e obturar o canal normalmente", correct: false, score: -250, feedback: "❌ Desastroso! Uma perfuração não selada leva à inflamação crônica e perda óssea, condenando o dente." }
+                ]
+            },
+            {
+                text: "O paciente apresenta uma fratura radicular vertical. Há uma bolsa periodontal estreita e profunda associada.",
+                visual: "Fratura Radicular Vertical",
+                progress: 90,
+                particles: 15,
+                toothDamage: 4, // Dano muito alto
+                choices: [
+                    { text: "🦷 Extrair e planejar reabilitação", correct: true, score: 50, feedback: "✅ Decisão correta. Em fraturas verticais, a extração é a melhor opção para preservar o osso adjacente." },
+                    { text: "🔧 Tentar um tratamento complexo", correct: false, score: -200, feedback: "❌ Arriscado. Tratamentos em dentes com fratura vertical quase sempre falham." }
+                ]
+            }
+        ];
+
+        // Funções do Jogo
+        function loadHighScore() {
+            state.highScore = parseInt(localStorage.getItem("dentalGameHighScore") || "0");
+            ui.highScoreDisplays.start.textContent = state.highScore;
+            ui.highScoreDisplays.game.textContent = state.highScore;
+            ui.highScoreDisplays.final.textContent = state.highScore;
+        }
+
+        function saveHighScore() {
+            if (state.currentScore > state.highScore) {
+                state.highScore = state.currentScore;
+                localStorage.setItem("dentalGameHighScore", state.highScore);
+            }
+        }
+
+        function updateScore(points) {
+            state.currentScore += points;
+            ui.scoreDisplay.textContent = state.currentScore;
+            saveHighScore();
+            ui.highScoreDisplays.game.textContent = state.highScore;
+        }
+
+        function updateToothHealth(damage) {
+            state.toothHealth = Math.max(0, state.toothHealth - damage);
+            let toothClass = "";
+            if (state.toothHealth > 80) toothClass = "tooth-color-healthy";
+            else if (state.toothHealth > 60) toothClass = "tooth-color-yellow1";
+            else if (state.toothHealth > 40) toothClass = "tooth-color-yellow2";
+            else if (state.toothHealth > 20) toothClass = "tooth-color-orange";
+            else toothClass = "tooth-color-dark";
+            ui.toothImage.className = `tooth-image ${toothClass}`;
+        }
+
+        function startTimer() {
+            if (state.gameMode === "challenge") {
+                state.timeLeft = 15;
+                ui.timer.span.textContent = state.timeLeft;
+                ui.timer.container.style.display = "block";
+                clearInterval(state.timerId);
+                state.timerId = setInterval(() => {
+                    state.timeLeft--;
+                    ui.timer.span.textContent = state.timeLeft;
+                    if (state.timeLeft <= 0) {
+                        clearInterval(state.timerId);
+                        checkAnswer(-1); // -1 indica timeout
+                    }
+                }, 1000);
+            } else {
+                ui.timer.container.style.display = "none";
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(state.timerId);
+        }
+
+        function loadStage(stageIndex) {
+            if (stageIndex >= gameData.length) {
+                endGame();
+                return;
+            }
+
+            state.currentStage = stageIndex;
+            const currentData = gameData[state.currentStage];
+
+            ui.scenarioText.textContent = currentData.text;
+            ui.visualStatus.textContent = currentData.visual;
+            ui.progressBar.style.width = `${currentData.progress}%`;
+            
+            // Atualiza a imagem do dente e sua cor
+            ui.toothImage.src = "https://i.imgur.com/Q2Q2Q2Q.png"; // Imagem base do dente
+            updateToothHealth(currentData.toothDamage); // Aplica o dano visual
+
+            // Limpa partículas antigas e cria novas
+            ui.particlesContainer.innerHTML = "";
+            for (let i = 0; i < currentData.particles; i++) {
+                const particle = document.createElement("div");
+                particle.className = "particle";
+                particle.style.left = `${Math.random() * 80 + 10}%`;
+                particle.style.top = `${Math.random() * 60 + 20}%`;
+                particle.style.animationDelay = `${Math.random() * 2}s`;
+                particle.style.backgroundImage = `url(https://i.imgur.com/your_bacteria_image.png)`; // Substitua pela URL da sua imagem de bactéria
+                ui.particlesContainer.appendChild(particle);
+            }
+
+            // Renderiza as escolhas
+            ui.choicesDiv.innerHTML = "";
+            currentData.choices.forEach((choice, index) => {
+                const button = document.createElement("button");
+                button.textContent = choice.text;
+                button.onclick = () => checkAnswer(index);
+                ui.choicesDiv.appendChild(button);
+            });
+
+            ui.feedbackMessage.textContent = "";
+            ui.feedbackMessage.className = "";
+            ui.restartButton.style.display = "none";
+            startTimer();
+        }
+
+        function checkAnswer(selectedIndex) {
+            stopTimer();
+            const currentData = gameData[state.currentStage];
+            const choicesButtons = Array.from(ui.choicesDiv.children);
+
+            choicesButtons.forEach(button => button.disabled = true);
+
+            if (selectedIndex === -1) { // Timeout
+                updateScore(-50);
+                updateToothHealth(20); // Dano por timeout
+                ui.feedbackMessage.className = "danger-feedback";
+                ui.feedbackMessage.textContent = "⏰ Tempo esgotado! Responda mais rápido.";
+            } else {
+                const selectedChoice = currentData.choices[selectedIndex];
+                if (selectedChoice.correct) {
+                    updateScore(selectedChoice.score);
+                    ui.feedbackMessage.className = "success-feedback";
+                } else {
+                    updateScore(selectedChoice.score);
+                    updateToothHealth(20); // Dano por resposta errada
+                    ui.feedbackMessage.className = "danger-feedback";
+                }
+                ui.feedbackMessage.textContent = selectedChoice.feedback;
+
+                choicesButtons.forEach((button, index) => {
+                    if (currentData.choices[index].correct) {
+                        button.classList.add("correct-choice");
+                    } else if (index === selectedIndex) {
+                        button.classList.add("wrong-choice");
+                    }
+                });
+            }
+
+            setTimeout(() => {
+                loadStage(state.currentStage + 1);
+            }, 3000);
+        }
+
+        function startGame(mode) {
+            state.gameMode = mode;
+            state.currentStage = 0;
+            state.currentScore = 0;
+            state.toothHealth = 100; // Resetar saúde do dente
+            ui.scoreDisplay.textContent = state.currentScore;
+            ui.startScreen.style.display = "none";
+            ui.gameScreen.style.display = "block";
+            ui.endScreen.style.display = "none";
+            loadStage(state.currentStage);
+        }
+
+        function endGame() {
+            stopTimer();
+            saveHighScore();
+            ui.finalScoreDisplay.textContent = state.currentScore;
+            ui.highScoreDisplays.final.textContent = state.highScore;
+            ui.gameScreen.style.display = "none";
+            ui.endScreen.style.display = "flex";
+            ui.endScreen.style.flexDirection = "column";
+            ui.endScreen.style.alignItems = "center";
+            ui.endScreen.style.justifyContent = "center";
+        }
+
+        function restartGame() {
+            stopTimer();
+            state.currentStage = 0;
+            state.currentScore = 0;
+            state.toothHealth = 100;
+            ui.scoreDisplay.textContent = state.currentScore;
+            ui.startScreen.style.display = "flex";
+            ui.gameScreen.style.display = "none";
+            ui.endScreen.style.display = "none";
+            loadHighScore(); // Recarrega o recorde na tela inicial
+        }
+
+        // Inicialização
+        document.addEventListener("DOMContentLoaded", () => {
+            loadHighScore();
+        });
+    </script>
+</body>
+</html>
